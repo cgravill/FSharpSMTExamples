@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.15
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharpSMTExamples", "FSharpSMTExamples.fsproj", "{296DEDFF-CFF0-439E-AB2E-ECD6F73EA2DB}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharpSMTExamples", "FSharpSMTExamples\FSharpSMTExamples.fsproj", "{296DEDFF-CFF0-439E-AB2E-ECD6F73EA2DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
