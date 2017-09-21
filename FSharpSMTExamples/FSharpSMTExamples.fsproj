@@ -58,8 +58,23 @@
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
+    <None Include="..\bin\Microsoft.Z3.dll">
+      <Link>Microsoft.Z3.dll</Link>
+    </None>
+    <None Include="..\bin\msvcp110.dll">
+      <Link>msvcp110.dll</Link>
+    </None>
+    <None Include="..\bin\msvcr110.dll">
+      <Link>msvcr110.dll</Link>
+    </None>
+    <None Include="..\bin\vcomp110.dll">
+      <Link>vcomp110.dll</Link>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Z3">
+      <HintPath>..\bin\Microsoft.Z3.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core">
       <Name>FSharp.Core</Name>
