@@ -3,44 +3,47 @@
 let petPurchasing() =
     use context = new Microsoft.Z3.Context()
 
-    let dog = context.MkIntConst("dog")
-    let cat = context.MkIntConst("cat")
-    let mouse = context.MkIntConst("mouse")
+    let dogCount = context.MkIntConst("dog")
+    let catCount = context.MkIntConst("cat")
+    let mouseCount = context.MkIntConst("mouse")
 
-    let dogCost = context.MkMul(context.MkInt(1500), dog)
-    let catCost = context.MkMul(context.MkInt(100), cat)
-    let mouseCost = context.MkMul(context.MkInt(25), mouse)
+    //Expression for cost for the animals
+    let dogsCost = context.MkMul(context.MkInt(1500), dogCount)
+    let catsCost = context.MkMul(context.MkInt(100), catCount)
+    let miceCost = context.MkMul(context.MkInt(25), mouseCount)
 
     let solver = context.MkSolver()
-    solver.Assert(context.MkGe(dog,context.MkInt(1)))
-    solver.Assert(context.MkGe(cat,context.MkInt(1)))
-    solver.Assert(context.MkGe(mouse,context.MkInt(1)))
+    //Ensure >= number of animals
+    solver.Assert(context.MkGe(dogCount,context.MkInt(1)))
+    solver.Assert(context.MkGe(catCount,context.MkInt(1)))
+    solver.Assert(context.MkGe(mouseCount,context.MkInt(1)))
     
-    let exp = context.MkAdd(dogCost, catCost, mouseCost)
+    let summedCost = context.MkAdd(dogsCost, catsCost, miceCost)
 
-    solver.Assert(context.MkEq(context.MkInt(10000), exp))
+    //Ensure we spend exactly all our money
+    solver.Assert(context.MkEq(context.MkInt(10000), summedCost))
 
     let status = solver.Check()
 
     match status with
     | Status.SATISFIABLE ->
             printfn "dogs: %s, cats: %s, mice: %s"
-                (solver.Model.Eval(dog, true).ToString())
-                (solver.Model.Eval(cat, true).ToString())
-                (solver.Model.Eval(mouse, true).ToString())
+                (solver.Model.Eval(dogCount, true).ToString())
+                (solver.Model.Eval(catCount, true).ToString())
+                (solver.Model.Eval(mouseCount, true).ToString())
     | _ -> printfn "UNSAT" 
 
 type riverState = {
-    farmer:BoolExpr
+    farmerShore:BoolExpr
     farmerBoat:BoolExpr
     farmerAcross:BoolExpr
-    wolf:BoolExpr
+    wolfShore:BoolExpr
     wolfBoat:BoolExpr
     wolfAcross:BoolExpr
-    goat:BoolExpr
+    goatShore:BoolExpr
     goatBoat:BoolExpr
     goatAcross:BoolExpr
-    cabbage:BoolExpr
+    cabbageShore:BoolExpr
     cabbageBoat:BoolExpr
     cabbageAcross:BoolExpr
     }
@@ -56,18 +59,20 @@ let riverCrossing() =
             context.MkXor(context.MkXor(b1, b2), b3)
             )
 
+    //State of the system, true or false for farmer, wolf, goat, cabbage being on shore, boat, across
+    //They need to be uniquely named hence the suffix
     let makeState i =
         {
-            farmer = context.MkBoolConst(i.ToString() + "_1");
+            farmerShore = context.MkBoolConst(i.ToString() + "_1");
             farmerBoat = context.MkBoolConst(i.ToString() + "_2");
             farmerAcross = context.MkBoolConst(i.ToString() + "_3");
-            wolf = context.MkBoolConst(i.ToString() + "_4");
+            wolfShore = context.MkBoolConst(i.ToString() + "_4");
             wolfBoat = context.MkBoolConst(i.ToString() + "_5");
             wolfAcross = context.MkBoolConst(i.ToString() + "_6");
-            goat= context.MkBoolConst(i.ToString() + "_7");
+            goatShore = context.MkBoolConst(i.ToString() + "_7");
             goatBoat = context.MkBoolConst(i.ToString() + "_8");
             goatAcross = context.MkBoolConst(i.ToString() + "_9");
-            cabbage = context.MkBoolConst(i.ToString() + "_10");
+            cabbageShore = context.MkBoolConst(i.ToString() + "_10");
             cabbageBoat = context.MkBoolConst(i.ToString() + "_11");
             cabbageAcross = context.MkBoolConst(i.ToString() + "_12");
             }
@@ -75,19 +80,21 @@ let riverCrossing() =
 
     let isValidState (state:riverState) =
 
+        //Describe invalid states as negation
         let noEating =
             context.MkNot(
                 context.MkOr(
-                    context.MkAnd(context.MkNot(state.farmer), state.wolf, state.goat), //Snack time!
+                    context.MkAnd(context.MkNot(state.farmerShore), state.wolfShore, state.goatShore), //Snack time!
                     context.MkAnd(context.MkNot(state.farmerBoat), state.wolfBoat, state.goatBoat),
                     context.MkAnd(context.MkNot(state.farmerAcross), state.wolfAcross, state.goatAcross),
-                    context.MkAnd(context.MkNot(state.farmer), state.goat, state.cabbage),
+                    context.MkAnd(context.MkNot(state.farmerShore), state.goatShore, state.cabbageShore),
                     context.MkAnd(context.MkNot(state.farmerBoat), state.goatBoat, state.cabbageBoat),
                     context.MkAnd(context.MkNot(state.farmerAcross), state.goatAcross, state.cabbageAcross)
                     )
                 )
-
-        let boatCapacity =
+        
+        //Restrict invalid state of everyone getting in boat as negation
+        let boatCapacityRespected =
             context.MkOr(
                 context.MkAnd(context.MkNot(state.farmerBoat), context.MkNot(state.wolfBoat), context.MkNot(state.goatBoat), context.MkNot(state.cabbageBoat)),
                 context.MkAnd(state.farmerBoat, context.MkNot(state.wolfBoat), context.MkNot(state.goatBoat), context.MkNot(state.cabbageBoat)),
@@ -95,30 +102,38 @@ let riverCrossing() =
                 context.MkAnd(state.farmerBoat, context.MkNot(state.wolfBoat), state.goatBoat,context.MkNot(state.cabbageBoat)),
                 context.MkAnd(state.farmerBoat, context.MkNot(state.wolfBoat), context.MkNot(state.goatBoat),state.cabbageBoat)
                 )
-
+        
+        //Each entity can strictly only be on shore, in boat, or across (no cloning)
+        let onePlaceAtATime =
+            context.MkAnd(
+                (MkXor3 state.farmerShore state.farmerBoat state.farmerAcross),
+                (MkXor3 state.goatShore state.goatBoat state.goatAcross),
+                (MkXor3 state.wolfShore state.wolfBoat state.wolfAcross),
+                (MkXor3 state.cabbageShore state.cabbageBoat state.cabbageAcross)
+            )
+        
         context.MkAnd(
-            (MkXor3 state.farmer state.farmerBoat state.farmerAcross),
-            (MkXor3 state.goat state.goatBoat state.goatAcross),
-            (MkXor3 state.wolf state.wolfBoat state.wolfAcross),
-            (MkXor3 state.cabbage state.cabbageBoat state.cabbageAcross),
             noEating,
-            boatCapacity
+            boatCapacityRespected,
+            onePlaceAtATime
             )
     
     //Transitions
     let validTransition (state:riverState, state2:riverState) =
-        let stationaryFarmer = context.MkAnd(context.MkEq(state.farmer, state2.farmer), context.MkEq(state.farmerBoat, state2.farmerBoat))
-        let stationaryWolf = context.MkAnd(context.MkEq(state.wolf, state2.wolf), context.MkEq(state.wolfBoat, state2.wolfBoat))
-        let stationaryGoat = context.MkAnd(context.MkEq(state.goat, state2.goat), context.MkEq(state.goatBoat, state2.goatBoat))
-        let stationaryCabbage = context.MkAnd(context.MkEq(state.cabbage, state2.cabbage), context.MkEq(state.cabbageBoat, state2.cabbageBoat))
+        //Helpers, useful to describe others as stationary
+        let stationaryFarmer = context.MkAnd(context.MkEq(state.farmerShore, state2.farmerShore), context.MkEq(state.farmerBoat, state2.farmerBoat))
+        let stationaryWolf = context.MkAnd(context.MkEq(state.wolfShore, state2.wolfShore), context.MkEq(state.wolfBoat, state2.wolfBoat))
+        let stationaryGoat = context.MkAnd(context.MkEq(state.goatShore, state2.goatShore), context.MkEq(state.goatBoat, state2.goatBoat))
+        let stationaryCabbage = context.MkAnd(context.MkEq(state.cabbageShore, state2.cabbageShore), context.MkEq(state.cabbageBoat, state2.cabbageBoat))
+        //Could factor out more of the movement here if desired
         context.MkOr(
-            //+unproductive farmer, simplifies development
+            //+unproductive farmer with no movement, simplifies development
             context.MkAnd(stationaryFarmer, stationaryWolf, stationaryGoat, stationaryCabbage),
             //Farmer solo
             context.MkAnd(stationaryGoat, stationaryWolf, stationaryCabbage,
                 context.MkOr(
-                    context.MkAnd(state.farmer,state2.farmerBoat),
-                    context.MkAnd(state.farmerBoat,state2.farmer),
+                    context.MkAnd(state.farmerShore,state2.farmerBoat),
+                    context.MkAnd(state.farmerBoat,state2.farmerShore),
                     context.MkAnd(state.farmerBoat,state2.farmerAcross),
                     context.MkAnd(state.farmerAcross,state2.farmerBoat))),
             //+Wolf
@@ -126,8 +141,8 @@ let riverCrossing() =
                 stationaryGoat,
                 stationaryCabbage,
                 context.MkOr(
-                    context.MkAnd(state.farmer,state2.farmerBoat,state.wolf,state2.wolfBoat),
-                    context.MkAnd(state.farmerBoat,state2.farmer,state.wolfBoat,state2.wolf),
+                    context.MkAnd(state.farmerShore,state2.farmerBoat,state.wolfShore,state2.wolfBoat),
+                    context.MkAnd(state.farmerBoat,state2.farmerShore,state.wolfBoat,state2.wolfShore),
                     context.MkAnd(state.farmerBoat,state2.farmerAcross,state.wolfBoat,state2.wolfAcross),
                     context.MkAnd(state.farmerAcross,state2.farmerBoat,state.wolfAcross,state2.wolfBoat))),
             //+Goat
@@ -135,8 +150,8 @@ let riverCrossing() =
                 stationaryWolf,
                 stationaryCabbage,
                 context.MkOr(
-                    context.MkAnd(state.farmer,state2.farmerBoat,state.goat,state2.goatBoat),
-                    context.MkAnd(state.farmerBoat,state2.farmer,state.goatBoat,state2.goat),
+                    context.MkAnd(state.farmerShore,state2.farmerBoat,state.goatShore,state2.goatBoat),
+                    context.MkAnd(state.farmerBoat,state2.farmerShore,state.goatBoat,state2.goatShore),
                     context.MkAnd(state.farmerBoat,state2.farmerAcross,state.goatBoat,state2.goatAcross),
                     context.MkAnd(state.farmerAcross,state2.farmerBoat,state.goatAcross,state2.goatBoat))),
             //+Cabbage
@@ -144,21 +159,22 @@ let riverCrossing() =
                 stationaryWolf,
                 stationaryGoat,
                 context.MkOr(
-                    context.MkAnd(state.farmer,state2.farmerBoat,state.cabbage,state2.cabbageBoat),
-                    context.MkAnd(state.farmerBoat,state2.farmer,state.cabbageBoat,state2.cabbage),
+                    context.MkAnd(state.farmerShore,state2.farmerBoat,state.cabbageShore,state2.cabbageBoat),
+                    context.MkAnd(state.farmerBoat,state2.farmerShore,state.cabbageBoat,state2.cabbageShore),
                     context.MkAnd(state.farmerBoat,state2.farmerAcross,state.cabbageBoat,state2.cabbageAcross),
                     context.MkAnd(state.farmerAcross,state2.farmerBoat,state.cabbageAcross,state2.cabbageBoat)))
                     )
 
-    //
+    //Start
     let allLeft (state:riverState) =
         context.MkAnd(
-            state.farmer,
-            state.wolf,
-            state.goat,
-            state.cabbage
+            state.farmerShore,
+            state.wolfShore,
+            state.goatShore,
+            state.cabbageShore
             )
-
+    
+    //Success!
     let allAcross (state:riverState) =
         context.MkAnd(
             state.farmerAcross,
@@ -170,10 +186,11 @@ let riverCrossing() =
     //
     let solver = context.MkSolver()
 
+    //15 is the magic number, try less and more. (we could also search for this)
     let trajectories = Array.init 15 (fun i -> makeState i)
     let finalState = trajectories |> Array.last
    
-    //
+    //Assert the trajectories in turn. Each must be a valid state
     solver.Assert(allLeft trajectories.[0])
     trajectories |> Array.map isValidState |> (fun states -> solver.Assert(states))
     trajectories |> Array.pairwise |> Array.map validTransition |> (fun states -> solver.Assert(states))
@@ -192,22 +209,22 @@ let riverCrossing() =
             else
                 printf "         "
         
-        printWhen "Farmer  " systemState.farmer
+        printWhen "Farmer  " systemState.farmerShore
         printWhen "Farmer  " systemState.farmerBoat
         printWhen "Farmer  " systemState.farmerAcross
         printfn ""
 
-        printWhen "Wolf    " systemState.wolf
+        printWhen "Wolf    " systemState.wolfShore
         printWhen "Wolf    " systemState.wolfBoat
         printWhen "Wolf    " systemState.wolfAcross
         printfn ""
 
-        printWhen "Goat    " systemState.goat
+        printWhen "Goat    " systemState.goatShore
         printWhen "Goat    " systemState.goatBoat
         printWhen "Goat    " systemState.goatAcross
         printfn ""
 
-        printWhen "Cabbage " systemState.cabbage
+        printWhen "Cabbage " systemState.cabbageShore
         printWhen "Cabbage " systemState.cabbageBoat
         printWhen "Cabbage " systemState.cabbageAcross
         printfn ""
