@@ -2,4 +2,4 @@
 
 Example of using the excellent Z3 SMT solver from F#.
 
-You need to get a 64bit Z3 release yourself and extract the /bin directory to the repository root.
+.NET Core 3.0 and relies on the the https://www.nuget.org/packages/Microsoft.Z3.x64/ NuGet
